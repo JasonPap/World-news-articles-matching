@@ -99,3 +99,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+#Pycharm files
+*.idea
+.idea/
