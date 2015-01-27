@@ -10,7 +10,8 @@ countryDict = {'AR': "AR"}
 
 
 class NewsArticle:
-    def __init__(self, title, date, text):
+    def __init__(self, id,title, date, text):
+        self.id = id
         self.title = title
         self.date = date
         self.text = text
