@@ -1,7 +1,7 @@
 __author__ = 'jason'
 
 
-def search(query):
+def geo_search(query):
     results = dict()
     # use the geonames webAPI to fill dictionary with data
     results["country"] = "Greece"

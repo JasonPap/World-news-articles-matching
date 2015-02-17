@@ -51,53 +51,16 @@ class NewsArticle:
         ner = NERTagger('/usr/share/stanford-ner/classifiers/english.all.3class.distsim.crf.ser.gz',
                        '/usr/share/stanford-ner/stanford-ner.jar')
         extracted_ne = ner.tag(self.text.replace(".", "*").replace("!", "*").replace("?", "*").split())
+
         persons = self.process_named_entities(extracted_ne, "PERSON")
         organizations = self.process_named_entities(extracted_ne, "ORGANIZATION")
         locations = self.process_named_entities(extracted_ne, "LOCATION")
+
         self.metadata["persons"] = persons
         self.metadata["organizations"] = organizations
         self.metadata["locations"] = locations
 
-        general_locations = self.enrich_location(extracted_ne)
-
-    @staticmethod
-    def enrich_location(named_entities_l):
-        # rules:    LOCATION in LOCATION
-        #           LOCATION of LOCATION
-        #           LOCATION , LOCATION     note: second location must be a country or a state
-        aggregated_results = []
-        unified_locations = []
-
-        # if there are less than 3 items in the list, no pattern can be matched
-        if len(named_entities_l) < 3:
-            return aggregated_results
-
-        for index in range(len(named_entities_l) - 2):
-            if named_entities_l[index][1] == "LOCATION" and \
-               named_entities_l[index + 1][0].lower() == "in" and \
-               named_entities_l[index + 2][1] == "LOCATION":        # first rule matches
-                unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
-            elif named_entities_l[index][1] == "LOCATION" and \
-                named_entities_l[index + 1][0].lower() == "of" and \
-                named_entities_l[index + 2][1] == "LOCATION":        # second rule matches
-
-                unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
-
-            elif named_entities_l[index][1] == "LOCATION" and named_entities_l[index + 1][0].lower() == "," and \
-                    named_entities_l[index + 2][1] == "LOCATION" and \
-                    isCountry(named_entities_l[index + 2][0]):        # third rule matches
-
-                unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
-
-        # for location in unified_locations:
-        #    results = search("q=" + location)   # get dictionary with geonames webAPI results
-        #    hierarchy = None
-        #    if "geonameId" in results:
-        #        hierarchy = get_hierarchy(results["geonameId"]) # get dictionary with geonames webAPI results
-
-            # do something to fill the aggregated results list
-
-        return aggregated_results
+        general_locations = enrich_location(extracted_ne)
 
 
     @staticmethod
@@ -114,6 +77,74 @@ class NewsArticle:
                 prev_flag = 0
 
         return aggregated_results
+
+
+def enrich_location(named_entities_l):
+    # rules:    LOCATION in LOCATION
+    #           LOCATION of LOCATION
+    #           LOCATION , LOCATION     note: second location must be a country or a state
+    #           LOCATION LOCATION
+    #           LOCATION
+    unified_locations = []
+
+    # if there are less than 3 items in the list, no pattern can be matched
+    if len(named_entities_l) < 3:
+        return None
+
+    for index in range(len(named_entities_l) - 2):
+        if named_entities_l[index][1] == "LOCATION" and \
+           named_entities_l[index + 1][0].lower() == "in" and \
+           named_entities_l[index + 2][1] == "LOCATION":        # first rule matches
+            unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
+
+        elif named_entities_l[index][1] == "LOCATION" and \
+            named_entities_l[index + 1][0].lower() == "of" and \
+            named_entities_l[index + 2][1] == "LOCATION":        # second rule matches
+
+            unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
+
+        elif named_entities_l[index][1] == "LOCATION" and named_entities_l[index + 1][0].lower() == "," and \
+                named_entities_l[index + 2][1] == "LOCATION" and \
+                isCountry(named_entities_l[index + 2][0]):        # third rule matches
+
+            unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
+
+        elif named_entities_l[index][1] == "LOCATION" and named_entities_l[index + 1][1] == "LOCATION":
+                                                                # forth rule matches
+            unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 1][0])
+
+        elif named_entities_l[index][1] == "LOCATION":
+                                                                # fifth rule matches
+            unified_locations.append(named_entities_l[index][0])
+
+    countries = dict()
+    places = dict()
+
+    for location in unified_locations:
+        results = geo_search("q=" + location)   # get dictionary with geonames webAPI results
+        if results["country"] in countries:
+            countries[results["country"]] += 1
+        else:
+            countries[results["country"]] = 1
+
+        if results["place"] in places:
+            places[results["place"]] += 1
+        else:
+            places[results["place"]] = 1
+
+    l_countries = []
+    for country in countries:
+        l_countries.append((countries[country], country))
+    l_countries.sort(reverse=True)
+
+    l_places = []
+    for place in places:
+        l_places.append((places[place], place))
+    l_places.sort(reverse=True)
+
+    aggregated_results = l_countries, l_places
+
+    return aggregated_results
 
 
 def isCountry(c):
