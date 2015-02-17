@@ -128,15 +128,17 @@ def enrich_location(named_entities_l):
 
     for location in unified_locations:
         results = geo_search("q=" + location)   # get dictionary with geonames webAPI results
-        if results["country"] in countries:
-            countries[results["country"]] += 1
-        else:
-            countries[results["country"]] = 1
+        if "country" in results:
+            if results["country"] in countries:
+                countries[results["country"]] += 1
+            else:
+                countries[results["country"]] = 1
 
-        if results["place"] in places:
-            places[results["place"]] += 1
-        else:
-            places[results["place"]] = 1
+        if "place" in results:
+            if results["place"] in places:
+                places[results["place"]] += 1
+            else:
+                places[results["place"]] = 1
 
     l_countries = []
     for country in countries:
