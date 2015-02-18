@@ -54,13 +54,13 @@ class NewsArticle:
 
         persons = self.process_named_entities(extracted_ne, "PERSON")
         organizations = self.process_named_entities(extracted_ne, "ORGANIZATION")
-        locations = self.process_named_entities(extracted_ne, "LOCATION")
+        locations = unify_locations(extracted_ne)
 
         self.metadata["persons"] = persons
         self.metadata["organizations"] = organizations
         self.metadata["locations"] = locations
 
-        general_locations = enrich_location(extracted_ne)
+        general_locations = enrich_location(locations)
 
     def process_named_entities(self, named_entities_l, type):
         aggregated_results = []
@@ -77,51 +77,59 @@ class NewsArticle:
         return aggregated_results
 
 
-def enrich_location(named_entities_l):
+def unify_locations(named_entities):
     # rules:    LOCATION in LOCATION
     #           LOCATION of LOCATION
     #           LOCATION , LOCATION     note: second location must be a country or a state
     #           LOCATION LOCATION
     #           LOCATION
+    # return list with unified locations
     unified_locations = []
 
     # if there are less than 3 items in the list, no pattern can be matched
-    if len(named_entities_l) < 3:
+    if len(named_entities) < 3:
         return None
 
     index = 0
-    while index < len(named_entities_l) - 2:
-        if named_entities_l[index][1] == "LOCATION" and \
-           named_entities_l[index + 1][0].lower() == "in" and \
-           named_entities_l[index + 2][1] == "LOCATION":        # first rule matches
-            unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
+    while index < len(named_entities) - 2:
+        if named_entities[index][1] == "LOCATION" and \
+           named_entities[index + 1][0].lower() == "in" and \
+           named_entities[index + 2][1] == "LOCATION":        # first rule matches
+            unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
             index += 3
 
-        elif named_entities_l[index][1] == "LOCATION" and \
-            named_entities_l[index + 1][0].lower() == "of" and \
-            named_entities_l[index + 2][1] == "LOCATION":        # second rule matches
+        elif named_entities[index][1] == "LOCATION" and \
+            named_entities[index + 1][0].lower() == "of" and \
+            named_entities[index + 2][1] == "LOCATION":        # second rule matches
 
-            unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
+            unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
             index += 3
 
-        elif named_entities_l[index][1] == "LOCATION" and named_entities_l[index + 1][0].lower() == "," and \
-                named_entities_l[index + 2][1] == "LOCATION" and \
-                isCountry(named_entities_l[index + 2][0]):        # third rule matches
+        elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][0].lower() == "," and \
+                named_entities[index + 2][1] == "LOCATION" and \
+                isCountry(named_entities[index + 2][0]):        # third rule matches
 
-            unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 2][0])
+            unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
             index += 3
 
-        elif named_entities_l[index][1] == "LOCATION" and named_entities_l[index + 1][1] == "LOCATION":
+        elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][1] == "LOCATION":
                                                                 # forth rule matches
-            unified_locations.append(named_entities_l[index][0] + named_entities_l[index + 1][0])
+            unified_locations.append(named_entities[index][0] + named_entities[index + 1][0])
             index += 2
 
-        elif named_entities_l[index][1] == "LOCATION":
+        elif named_entities[index][1] == "LOCATION":
                                                                 # fifth rule matches
-            unified_locations.append(named_entities_l[index][0])
+            unified_locations.append(named_entities[index][0])
             index += 1
         else:
             index += 1
+
+    return unified_locations
+
+
+def enrich_location(unified_locations):
+    # return tuple with two lists (countries, places)
+    # where each list have tuples (number of occurrences, country)
 
     countries = dict()
     places = dict()
