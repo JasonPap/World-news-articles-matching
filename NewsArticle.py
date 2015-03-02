@@ -11,12 +11,14 @@ countryDict = {'AR': "AR"}
 
 
 class NewsArticle:
-    def __init__(self, id,title, date, text):
+    def __init__(self, id,title, date, text, unwanted_words, countries):
         self.id = id
         self.title = title
         self.date = date
         self.text = text
         self.metadata = dict()
+        self.unwanted_words = unwanted_words
+        self.countries = countries
 
     def extract_metadata(self):
         self.extract_noun_phrases()
@@ -51,16 +53,21 @@ class NewsArticle:
         ner = NERTagger('/usr/share/stanford-ner/classifiers/english.all.3class.distsim.crf.ser.gz',
                        '/usr/share/stanford-ner/stanford-ner.jar')
         extracted_ne = ner.tag(self.text.replace(".", "*").replace("!", "*").replace("?", "*").split())
+        useful_ne = self.remove_unwanted_words(extracted_ne)
 
-        persons = self.process_named_entities(extracted_ne, "PERSON")
-        organizations = self.process_named_entities(extracted_ne, "ORGANIZATION")
-        locations = unify_locations(extracted_ne)
+        self.metadata["wordbag"] = useful_ne
+
+        persons = self.process_named_entities(useful_ne, "PERSON")
+        organizations = self.process_named_entities(useful_ne, "ORGANIZATION")
+        locations = self.unify_locations(useful_ne)
 
         self.metadata["persons"] = persons
         self.metadata["organizations"] = organizations
         self.metadata["locations"] = locations
 
         general_locations = enrich_location(locations)
+        self.metadata["countries"] = general_locations[0]   # a list of sorted tuples (#ofOccurences, Country)
+        self.metadata["places"] = general_locations[1]      # a list of sorted tuples (#ofOccurences, Place)
 
     def process_named_entities(self, named_entities_l, type):
         aggregated_results = []
@@ -76,55 +83,65 @@ class NewsArticle:
 
         return aggregated_results
 
-
-def unify_locations(named_entities):
-    # rules:    LOCATION in LOCATION
-    #           LOCATION of LOCATION
-    #           LOCATION , LOCATION     note: second location must be a country or a state
-    #           LOCATION LOCATION
-    #           LOCATION
-    # return list with unified locations
-    unified_locations = []
-
-    # if there are less than 3 items in the list, no pattern can be matched
-    if len(named_entities) < 3:
-        return None
-
-    index = 0
-    while index < len(named_entities) - 2:
-        if named_entities[index][1] == "LOCATION" and \
-           named_entities[index + 1][0].lower() == "in" and \
-           named_entities[index + 2][1] == "LOCATION":        # first rule matches
-            unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
-            index += 3
-
-        elif named_entities[index][1] == "LOCATION" and \
-            named_entities[index + 1][0].lower() == "of" and \
-            named_entities[index + 2][1] == "LOCATION":        # second rule matches
-
-            unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
-            index += 3
-
-        elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][0].lower() == "," and \
-                named_entities[index + 2][1] == "LOCATION" and \
-                isCountry(named_entities[index + 2][0]):        # third rule matches
-
-            unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
-            index += 3
-
-        elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][1] == "LOCATION":
-                                                                # forth rule matches
-            unified_locations.append(named_entities[index][0] + named_entities[index + 1][0])
-            index += 2
-
-        elif named_entities[index][1] == "LOCATION":
-                                                                # fifth rule matches
-            unified_locations.append(named_entities[index][0])
-            index += 1
+    def isCountry(self, c):
+        if c in self.countries:
+            return True
         else:
-            index += 1
+            return False
 
-    return unified_locations
+    def unify_locations(self, named_entities):
+        # rules:    LOCATION in LOCATION
+        #           LOCATION of LOCATION
+        #           LOCATION , LOCATION     note: second location must be a country or a state
+        #           LOCATION LOCATION
+        #           LOCATION
+        # return list with unified locations
+        unified_locations = []
+
+        # if there are less than 3 items in the list, no pattern can be matched
+        if len(named_entities) < 3:
+            return None
+
+        index = 0
+        while index < len(named_entities) - 2:
+            if named_entities[index][1] == "LOCATION" and \
+               named_entities[index + 1][0].lower() == "in" and \
+               named_entities[index + 2][1] == "LOCATION":        # first rule matches
+                unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
+                index += 3
+
+            elif named_entities[index][1] == "LOCATION" and \
+                named_entities[index + 1][0].lower() == "of" and \
+                named_entities[index + 2][1] == "LOCATION":        # second rule matches
+
+                unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
+                index += 3
+
+            elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][0].lower() == "," and \
+                    named_entities[index + 2][1] == "LOCATION" and \
+                    self.isCountry(named_entities[index + 2][0]):        # third rule matches
+
+                unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
+                index += 3
+
+            elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][1] == "LOCATION":
+                                                                    # forth rule matches
+                unified_locations.append(named_entities[index][0] + named_entities[index + 1][0])
+                index += 2
+
+            elif named_entities[index][1] == "LOCATION":
+                                                                    # fifth rule matches
+                unified_locations.append(named_entities[index][0])
+                index += 1
+            else:
+                index += 1
+
+        return unified_locations
+
+    def remove_unwanted_words(self, named_entities):
+        for u_word in self.unwanted_words:
+            named_entities = [(w, pos) for w, pos in named_entities if w != u_word]
+        return named_entities
 
 
 def enrich_location(unified_locations):
@@ -163,11 +180,6 @@ def enrich_location(unified_locations):
     return aggregated_results
 
 
-def isCountry(c):
-    if c in countryDict:
-        return True
-    else:
-        return False
 
 
 print "--start--"
