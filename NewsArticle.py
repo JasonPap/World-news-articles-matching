@@ -11,7 +11,7 @@ countryDict = {'AR': "AR"}
 
 
 class NewsArticle:
-    def __init__(self, id,title, date, text, unwanted_words, countries):
+    def __init__(self, id, title, date, text, unwanted_words, countries):
         self.id = id
         self.title = title
         self.date = date
@@ -23,6 +23,7 @@ class NewsArticle:
     def extract_metadata(self):
         self.extract_noun_phrases()
         self.create_title_hashtags()
+        self.named_entity_extraction()
 
     def extract_noun_phrases(self):
         extractor = FastNPExtractor()
@@ -65,7 +66,7 @@ class NewsArticle:
         self.metadata["organizations"] = organizations
         self.metadata["locations"] = locations
 
-        general_locations = enrich_location(locations)
+        general_locations = self.enrich_location(locations)
         self.metadata["countries"] = general_locations[0]   # a list of sorted tuples (#ofOccurences, Country)
         self.metadata["places"] = general_locations[1]      # a list of sorted tuples (#ofOccurences, Place)
 
@@ -143,41 +144,40 @@ class NewsArticle:
             named_entities = [(w, pos) for w, pos in named_entities if w != u_word]
         return named_entities
 
+    def enrich_location(self, unified_locations):
+        # return tuple with two lists (countries, places)
+        # where each list have tuples (number of occurrences, country)
 
-def enrich_location(unified_locations):
-    # return tuple with two lists (countries, places)
-    # where each list have tuples (number of occurrences, country)
+        countries = dict()
+        places = dict()
 
-    countries = dict()
-    places = dict()
+        for location in unified_locations:
+            results = geo_search("q=" + location)   # get dictionary with geonames webAPI results
+            if "country" in results:
+                if results["country"] in countries:
+                    countries[results["country"]] += 1
+                else:
+                    countries[results["country"]] = 1
 
-    for location in unified_locations:
-        results = geo_search("q=" + location)   # get dictionary with geonames webAPI results
-        if "country" in results:
-            if results["country"] in countries:
-                countries[results["country"]] += 1
-            else:
-                countries[results["country"]] = 1
+            if "place" in results:
+                if results["place"] in places:
+                    places[results["place"]] += 1
+                else:
+                    places[results["place"]] = 1
 
-        if "place" in results:
-            if results["place"] in places:
-                places[results["place"]] += 1
-            else:
-                places[results["place"]] = 1
+        l_countries = []
+        for country in countries:
+            l_countries.append((countries[country], country))
+        l_countries.sort(reverse=True)
 
-    l_countries = []
-    for country in countries:
-        l_countries.append((countries[country], country))
-    l_countries.sort(reverse=True)
+        l_places = []
+        for place in places:
+            l_places.append((places[place], place))
+        l_places.sort(reverse=True)
 
-    l_places = []
-    for place in places:
-        l_places.append((places[place], place))
-    l_places.sort(reverse=True)
+        aggregated_results = l_countries, l_places
 
-    aggregated_results = l_countries, l_places
-
-    return aggregated_results
+        return aggregated_results
 
 
 
