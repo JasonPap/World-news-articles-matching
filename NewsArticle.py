@@ -1,21 +1,21 @@
 __author__ = 'jason'
 from textblob import TextBlob
 from textblob.np_extractors import FastNPExtractor
-from textblob import Word
 from hashtagify import Hashtagify
 from nltk.tag.stanford import NERTagger
 from geonames import *
-import re
+
 
 countryDict = {'AR': "AR"}
 
 
 class NewsArticle:
-    def __init__(self, id, title, date, text, unwanted_words, countries):
+    def __init__(self, id, title, date, text, url, unwanted_words, countries):
         self.id = id
         self.title = title
         self.date = date
         self.text = text
+        self.url = url
         self.metadata = dict()
         self.unwanted_words = unwanted_words
         self.countries = countries
@@ -40,7 +40,7 @@ class NewsArticle:
 
         # tag the relevant words on the title and save the result
         tagged_title = ht.hashtagify(0.40)
-        self.metadata["tagged_title"] = tagged_title
+        self.metadata["title"] = self.title
 
         # get only the tagged words and save them separately
         l_words = tagged_title.split(' ')
@@ -54,13 +54,10 @@ class NewsArticle:
         ner = NERTagger('/usr/share/stanford-ner/classifiers/english.all.3class.distsim.crf.ser.gz',
                        '/usr/share/stanford-ner/stanford-ner.jar')
         extracted_ne = ner.tag(self.text.replace(".", "*").replace("!", "*").replace("?", "*").split())
-        useful_ne = self.remove_unwanted_words(extracted_ne)
 
-        self.metadata["wordbag"] = useful_ne
-
-        persons = self.process_named_entities(useful_ne, "PERSON")
-        organizations = self.process_named_entities(useful_ne, "ORGANIZATION")
-        locations = self.unify_locations(useful_ne)
+        persons = self.process_named_entities(extracted_ne, "PERSON")
+        organizations = self.process_named_entities(extracted_ne, "ORGANIZATION")
+        locations = self.unify_locations(extracted_ne)
 
         self.metadata["persons"] = persons
         self.metadata["organizations"] = organizations
@@ -69,6 +66,9 @@ class NewsArticle:
         general_locations = self.enrich_location(locations)
         self.metadata["countries"] = general_locations[0]   # a list of sorted tuples (#ofOccurences, Country)
         self.metadata["places"] = general_locations[1]      # a list of sorted tuples (#ofOccurences, Place)
+
+        useful_ne = self.remove_unwanted_words(extracted_ne)
+        self.metadata["wordbag"] = useful_ne
 
     def process_named_entities(self, named_entities_l, type):
         aggregated_results = []
