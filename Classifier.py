@@ -13,6 +13,9 @@ class Classifier:
         if self.content_type != content_type:   # contents do not match
             return -1                           # error
 
+        if content_type == "hashtags":
+
+
 
 
 stemmer = nltk.stem.porter.PorterStemmer()
