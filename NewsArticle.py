@@ -36,7 +36,7 @@ class NewsArticle:
             # print w.lemmatize()
 
     def create_title_hashtags(self):
-        ht = Hashtagify(title = self.title, content= self.text)
+        ht = Hashtagify(title=self.title, content=self.text)
 
         # tag the relevant words on the title and save the result
         tagged_title = ht.hashtagify(0.40)

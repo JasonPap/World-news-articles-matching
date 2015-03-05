@@ -23,13 +23,14 @@ class NewsAggregator:
         if len(self.topics) == 0:               # if there are no topics (empty DB)
             self.add_topic(article)             # create new one based on the article
         else:
-
             topic_id = self.classify_article(article)
             if topic_id == -1:                  # no match was found
                 self.add_topic(article)         # then create new topic
             else:                               # matching topic found
                 self.topics[topic_id].append(article.id)    # add article to topic's list
                 # if we need to update classifiers, do it here
+                #
+                #
 
     def add_topic(self, article):
         # create a new topic based on the article
