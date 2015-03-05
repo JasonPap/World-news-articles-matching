@@ -1,7 +1,7 @@
 __author__ = 'jason'
 import nltk, string
 from sklearn.feature_extraction.text import TfidfVectorizer
-
+import Utils
 
 class Classifier:
 
@@ -9,27 +9,17 @@ class Classifier:
         self.content_type = content_type    # a string with that describes the type of data to be stored
         self.content = initial_content
 
+    # This function compute the similarity of the object stored with the given content
+    # if the two objects are of the same type a normalized score [0.1] is returned
+    # else the return value is -1
     def classify(self, content_type, content):
         if self.content_type != content_type:   # contents do not match
             return -1                           # error
 
+        score = 0
         if content_type == "hashtags":
+            score = Utils.list_similarity(self.content, content)
+        elif
 
 
 
-
-stemmer = nltk.stem.porter.PorterStemmer()
-remove_punctuation_map = dict((ord(char), None) for char in string.punctuation)
-
-def stem_tokens(tokens):
-    return [stemmer.stem(item) for item in tokens]
-
-'''remove punctuation, lowercase, stem'''
-def normalize(text):
-    return stem_tokens(nltk.word_tokenize(text.lower().translate(remove_punctuation_map)))
-
-vectorizer = TfidfVectorizer(tokenizer=normalize, stop_words='english')
-
-def cosine_sim(text1, text2):
-    tfidf = vectorizer.fit_transform([text1, text2])
-    return ((tfidf * tfidf.T).A)[0,1]
