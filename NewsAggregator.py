@@ -1,14 +1,13 @@
 __author__ = 'jason'
-from textblob.classifiers import NaiveBayesClassifier
-from __future__ import division
-# ^- so that 3/2 returns 1.5 and not 1
+
+from Classifier import *
 
 
 class NewsAggregator:
     def __init__(self, similarity_threshold):
         self.articles = dict()      # key: article id, value: NewsArticle instance
         self.topics = dict()        # key: topic id , value: list of article ids
-        self.classifiers = dict()   # key: classified variable (string), value: NaiveBayesClassifier
+        self.classifiers = dict()   # key: classified variable (string), value: list of tuples (topic_id, classifier)
         self.next_topic_id = 1
         self.similarity_threshold = similarity_threshold    # value from 0 to 1 that defines the least percentage
                                                             # of similarity needed for two articles to be on the same
@@ -36,12 +35,19 @@ class NewsAggregator:
         # create a new topic based on the article
         # put the article id on the list of the topic
         # and add it's attributes to the classifiers as a new class
-
-        self.topics[self.next_topic_id] = [article.id]
+        topic_id = self.next_topic_id
+        self.topics[topic_id] = [article.id]
         self.next_topic_id += 1
 
         # create classifiers for each variable of the article and add them to the
         # classifiers dictionary of the NewsAggregator
+        for content_type in article.metadata:
+            content = article.metadata[content_type]
+            new_classifier = Classifier(content_type, content)
+            if content_type in self.classifiers:
+                self.classifiers[content_type].append((topic_id, new_classifier))
+            else:
+                self.classifiers[content_type] = [(topic_id, new_classifier)]
 
     def classify_article(self, article):
         # classify the article with the classifier(s)
@@ -54,6 +60,7 @@ class NewsAggregator:
         total = sum(l_classifiers_results)
         matching_score = total/len(l_classifiers_results)
 
+        # keep the highest of those greater than the similarity threshold
         if matching_score >= self.similarity_threshold:
 
     def foo(self, article, classified_var):
