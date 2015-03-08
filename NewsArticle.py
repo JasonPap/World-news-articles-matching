@@ -10,14 +10,13 @@ countryDict = {'AR': "AR"}
 
 
 class NewsArticle:
-    def __init__(self, id, title, date, text, url, unwanted_words, countries):
+    def __init__(self, id, title, date, text, url, countries):
         self.id = id
         self.title = title
         self.date = date
         self.text = text
         self.url = url
         self.metadata = dict()
-        self.unwanted_words = unwanted_words
         self.countries = countries
 
     def extract_metadata(self):
@@ -64,11 +63,11 @@ class NewsArticle:
         self.metadata["locations"] = locations
 
         general_locations = self.enrich_location(locations)
-        self.metadata["countries"] = general_locations[0]   # a list of sorted tuples (#ofOccurences, Country)
-        self.metadata["places"] = general_locations[1]      # a list of sorted tuples (#ofOccurences, Place)
+        self.metadata["countries"] = general_locations[0]   # a list of countries
+        self.metadata["places"] = general_locations[1]      # a list of places
 
         useful_ne = self.remove_unwanted_words(extracted_ne)
-        self.metadata["wordbag"] = useful_ne
+        self.metadata["summary"] = useful_ne
 
     def process_named_entities(self, named_entities_l, type):
         aggregated_results = []
@@ -84,7 +83,7 @@ class NewsArticle:
 
         return aggregated_results
 
-    def isCountry(self, c):
+    def is_country(self, c):
         if c in self.countries:
             return True
         else:
@@ -120,7 +119,7 @@ class NewsArticle:
 
             elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][0].lower() == "," and \
                     named_entities[index + 2][1] == "LOCATION" and \
-                    self.isCountry(named_entities[index + 2][0]):        # third rule matches
+                    self.is_country(named_entities[index + 2][0]):        # third rule matches
 
                 unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
                 index += 3
@@ -139,41 +138,23 @@ class NewsArticle:
 
         return unified_locations
 
-    def remove_unwanted_words(self, named_entities):
-        for u_word in self.unwanted_words:
-            named_entities = [(w, pos) for w, pos in named_entities if w != u_word]
-        return named_entities
+#    def remove_unwanted_words(self, named_entities):
+#        for u_word in self.unwanted_words:
+#            named_entities = [(w, pos) for w, pos in named_entities if w != u_word]
+#        return named_entities
 
     def enrich_location(self, unified_locations):
         # return tuple with two lists (countries, places)
-        # where each list have tuples (number of occurrences, country)
-
-        countries = dict()
-        places = dict()
-
+        # where each list have the countries and the places found with geo_names API
+        l_places = []
+        l_countries = []
         for location in unified_locations:
             results = geo_search("q=" + location)   # get dictionary with geonames webAPI results
             if "country" in results:
-                if results["country"] in countries:
-                    countries[results["country"]] += 1
-                else:
-                    countries[results["country"]] = 1
+                l_countries.append(results["country"])
 
             if "place" in results:
-                if results["place"] in places:
-                    places[results["place"]] += 1
-                else:
-                    places[results["place"]] = 1
-
-        l_countries = []
-        for country in countries:
-            l_countries.append((countries[country], country))
-        l_countries.sort(reverse=True)
-
-        l_places = []
-        for place in places:
-            l_places.append((places[place], place))
-        l_places.sort(reverse=True)
+                l_places.append(results["place"])
 
         aggregated_results = l_countries, l_places
 
