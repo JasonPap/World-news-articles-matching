@@ -53,9 +53,17 @@ class NewsAggregator:
         # classify the article with the classifier(s)
         # return the id of the matching topic if any, else return -1
 
+        topics_score = dict()   # key: topic id, value: score
         l_classifiers_results = []
-        for classified_var in self.classifiers:
-            l_classifiers_results.append(1)
+        for classifier_type in self.classifiers:
+            for topic_classifier in classifier_type:
+                topic_id = topic_classifier[0]
+                classifier = topic_classifier[1]
+                score = classifier.classify(classifier_type, article.metadata[classifier_type])
+                if topic_id in topics_score:
+                    topics_score[topic_id] += score
+                else:
+                    topics_score[topic_id] = score
 
         total = sum(l_classifiers_results)
         matching_score = total/len(l_classifiers_results)
