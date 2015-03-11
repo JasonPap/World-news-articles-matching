@@ -6,9 +6,6 @@ from nltk.tag.stanford import NERTagger
 from geonames import *
 
 
-countryDict = {'AR': "AR"}
-
-
 class NewsArticle:
     def __init__(self, id, title, date, text, url, countries):
         self.id = id
@@ -30,9 +27,6 @@ class NewsArticle:
         self.metadata["noun_phrases"] = []
         for noun_phrase in text.noun_phrases:
             self.metadata["noun_phrases"].append(noun_phrase)
-            # w = Word(noun_phrase)
-            # print noun_phrase
-            # print w.lemmatize()
 
     def create_title_hashtags(self):
         ht = Hashtagify(title=self.title, content=self.text)

@@ -55,7 +55,6 @@ class NewsAggregator:
         # return the id of the matching topic if any, else return -1
 
         topics_score = dict()   # key: topic id, value: score
-        l_classifiers_results = []
         for classifier_type in self.classifiers:
             for topic_classifier in classifier_type:
                 topic_id = topic_classifier[0]
@@ -105,5 +104,3 @@ class NewsAggregator:
 
         return (score * weight) / sum_of_weights
 
-    def foo(self, article, classified_var):
-        classifier = self.classifiers[classified_var]
