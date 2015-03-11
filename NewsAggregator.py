@@ -1,6 +1,7 @@
 __author__ = 'jason'
 
 from Classifier import *
+from __future__ import division
 
 
 class NewsAggregator:
@@ -60,16 +61,49 @@ class NewsAggregator:
                 topic_id = topic_classifier[0]
                 classifier = topic_classifier[1]
                 score = classifier.classify(classifier_type, article.metadata[classifier_type])
+                weighted_score = self.apply_weights(score, classifier_type)
                 if topic_id in topics_score:
-                    topics_score[topic_id] += score
+                    topics_score[topic_id] += weighted_score
                 else:
-                    topics_score[topic_id] = score
-
-        total = sum(l_classifiers_results)
-        matching_score = total/len(l_classifiers_results)
+                    topics_score[topic_id] = weighted_score
 
         # keep the highest of those greater than the similarity threshold
-        if matching_score >= self.similarity_threshold:
+        maximum_score = 0
+        topic_id = -1
+        for topic in topics_score:
+            if topics_score[topic] > maximum_score:
+                maximum_score = topics_score[topic]
+                topic_id = topic
+
+        if maximum_score >= self.similarity_threshold:
+            return topic_id
+        else:
+            return -1
+
+    def apply_weights(self, score, var_type):
+        weight = 1
+        if var_type == "noun_phrases":
+            weight = 1
+        elif var_type == "hashtags":
+            weight = 1
+        elif var_type == "title":
+            weight = 1
+        elif var_type == "persons":
+            weight = 1
+        elif var_type == "organizations":
+            weight = 1
+        elif var_type == "locations":
+            weight = 1
+        elif var_type == "countries":
+            weight = 1
+        elif var_type == "places":
+            weight = 1
+        elif var_type == "summary":
+            weight = 1
+
+        sum_of_weights = 9
+
+        return (score * weight) / sum_of_weights
 
     def foo(self, article, classified_var):
         classifier = self.classifiers[classified_var]
