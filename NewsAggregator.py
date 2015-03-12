@@ -1,7 +1,5 @@
-__author__ = 'jason'
-
-from Classifier import *
 from __future__ import division
+from Classifier import *
 
 
 class NewsAggregator:
@@ -56,7 +54,7 @@ class NewsAggregator:
 
         topics_score = dict()   # key: topic id, value: score
         for classifier_type in self.classifiers:
-            for topic_classifier in classifier_type:
+            for topic_classifier in self.classifiers[classifier_type]:
                 topic_id = topic_classifier[0]
                 classifier = topic_classifier[1]
                 score = classifier.classify(classifier_type, article.metadata[classifier_type])

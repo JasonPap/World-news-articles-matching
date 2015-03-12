@@ -60,8 +60,8 @@ class NewsArticle:
         self.metadata["countries"] = general_locations[0]   # a list of countries
         self.metadata["places"] = general_locations[1]      # a list of places
 
-        useful_ne = self.remove_unwanted_words(extracted_ne)
-        self.metadata["summary"] = useful_ne
+        #useful_ne = self.remove_unwanted_words(extracted_ne)
+        #self.metadata["summary"] = useful_ne
 
     def process_named_entities(self, named_entities_l, type):
         aggregated_results = []
@@ -157,7 +157,7 @@ class NewsArticle:
 
 
 
-print "--start--"
+#print "--start--"
 text = """
 A video file posted online Tuesday purports to relay a new message from Japanese ISIS hostage Kenji Goto: He and a captive Jordanian military pilot will be killed in the next 24 hours if Jordan doesn't release a convicted would-be suicide bomber.
 
@@ -203,6 +203,6 @@ Jordan is participating in an American-led mission against ISIS, an organization
 
 Goto, 47, and Yukawa, 42, had gone to the Middle East for different reasons, the former is an experienced freelance journalist covering the conflict in Iraq and Syria, and the latter an aspiring security contractor who felt at home in the war-torn region. They ended up in the hands of ISIS in recent months.
 """
-test = NewsArticle(1, "New apparent ISIS post threatens Japanese hostage, Jordanian pilot", "that", text)
-test.named_entity_extraction()
-print "--end--"
+#test = NewsArticle(1, "New apparent ISIS post threatens Japanese hostage, Jordanian pilot", "that", text)
+#test.named_entity_extraction()
+#print "--end--"
