@@ -38,14 +38,17 @@ def counter_cosine_similarity(c1, c2):
     dot_product = sum(c1.get(k, 0) * c2.get(k, 0) for k in terms)
     magA = math.sqrt(sum(c1.get(k, 0)**2 for k in terms))
     magB = math.sqrt(sum(c2.get(k, 0)**2 for k in terms))
-    return dot_product / (magA * magB)
-
+    mult = (magA * magB)
+    if mult != 0.0:
+        return dot_product / mult
+    else:
+        return 0
 
 def length_similarity(c1, c2):
     lenc1 = sum(c1.itervalues())
     lenc2 = sum(c2.itervalues())
-    max = float(max(lenc1, lenc2))
-    if max > 0:
-        return min(lenc1, lenc2) / float(max(lenc1, lenc2))
+    maxi = float(max(lenc1, lenc2))
+    if maxi > 0.0:
+        return min(lenc1, lenc2) / maxi
     else:
         return 0
