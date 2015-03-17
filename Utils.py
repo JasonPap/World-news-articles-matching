@@ -44,4 +44,8 @@ def counter_cosine_similarity(c1, c2):
 def length_similarity(c1, c2):
     lenc1 = sum(c1.itervalues())
     lenc2 = sum(c2.itervalues())
-    return min(lenc1, lenc2) / float(max(lenc1, lenc2))
+    max = float(max(lenc1, lenc2))
+    if max > 0:
+        return min(lenc1, lenc2) / float(max(lenc1, lenc2))
+    else:
+        return 0
