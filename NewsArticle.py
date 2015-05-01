@@ -4,6 +4,7 @@ from textblob.np_extractors import FastNPExtractor
 from hashtagify import Hashtagify
 from nltk.tag.stanford import NERTagger
 from geonames import *
+from nltk.corpus import stopwords
 
 
 class NewsArticle:
@@ -44,14 +45,17 @@ class NewsArticle:
         self.metadata["hashtags"] = l_tags
 
     def named_entity_extraction(self):
-        ner = NERTagger('/usr/share/stanford-ner/classifiers/english.all.3class.distsim.crf.ser.gz',
-                       '/usr/share/stanford-ner/stanford-ner.jar')
-        extracted_ne = ner.tag(self.text.replace(".", "*").replace("!", "*").replace("?", "*").split())
-
+        ner = NERTagger('/home/aris/Desktop/jason/stanford-ner/classifiers/english.all.3class.distsim.crf.ser.gz',
+                       '/home/aris/Desktop/jason/stanford-ner/stanford-ner.jar')
+        extracted_ne2 = ner.tag(self.text.replace(".", " ").replace(",", " , ").replace("!", " ").replace("?", " ").replace("\n"," ").split())
+        extracted_ne = extracted_ne2[0]
+        
+        #print extracted_ne
+        
         persons = self.process_named_entities(extracted_ne, "PERSON")
         organizations = self.process_named_entities(extracted_ne, "ORGANIZATION")
         locations = self.unify_locations(extracted_ne)
-
+        
         self.metadata["persons"] = persons
         self.metadata["organizations"] = organizations
         self.metadata["locations"] = locations
@@ -59,6 +63,8 @@ class NewsArticle:
         general_locations = self.enrich_location(locations)
         self.metadata["countries"] = general_locations[0]   # a list of countries
         self.metadata["places"] = general_locations[1]      # a list of places
+        
+       # print locations
 
         #useful_ne = self.remove_unwanted_words(extracted_ne)
         #self.metadata["summary"] = useful_ne
@@ -97,6 +103,7 @@ class NewsArticle:
             return None
 
         index = 0
+        print "PRIN TO WHILE"
         while index < len(named_entities) - 2:
             if named_entities[index][1] == "LOCATION" and \
                named_entities[index + 1][0].lower() == "in" and \
@@ -111,16 +118,16 @@ class NewsArticle:
                 unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
                 index += 3
 
-            elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][0].lower() == "," and \
-                    named_entities[index + 2][1] == "LOCATION" and \
-                    self.is_country(named_entities[index + 2][0]):        # third rule matches
+            #elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][0].lower() == "," and \
+            #       named_entities[index + 2][1] == "LOCATION" and \
+            #        self.is_country(named_entities[index + 2][0]):        # third rule matches
 
-                unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
-                index += 3
+            #    unified_locations.append(named_entities[index][0] + named_entities[index + 2][0])
+            #    index += 3
 
             elif named_entities[index][1] == "LOCATION" and named_entities[index + 1][1] == "LOCATION":
                                                                     # forth rule matches
-                unified_locations.append(named_entities[index][0] + named_entities[index + 1][0])
+                unified_locations.append(named_entities[index][0] + " " + named_entities[index + 1][0])
                 index += 2
 
             elif named_entities[index][1] == "LOCATION":
@@ -132,14 +139,18 @@ class NewsArticle:
 
         return unified_locations
 
-#    def remove_unwanted_words(self, named_entities):
-#        for u_word in self.unwanted_words:
-#            named_entities = [(w, pos) for w, pos in named_entities if w != u_word]
-#        return named_entities
+    def remove_unwanted_words(self, named_entities):
+        for u_word in self.unwanted_words:
+            named_entities = [(w, pos) for w, pos in named_entities if not w in stopwords.words('english')]
+        return named_entities
+       
 
     def enrich_location(self, unified_locations):
         # return tuple with two lists (countries, places)
         # where each list have the countries and the places found with geo_names API
+        if unified_locations is None:
+			return [[],[]]
+			
         l_places = []
         l_countries = []
         for location in unified_locations:
@@ -203,6 +214,8 @@ Jordan is participating in an American-led mission against ISIS, an organization
 
 Goto, 47, and Yukawa, 42, had gone to the Middle East for different reasons, the former is an experienced freelance journalist covering the conflict in Iraq and Syria, and the latter an aspiring security contractor who felt at home in the war-torn region. They ended up in the hands of ISIS in recent months.
 """
+
+
 #test = NewsArticle(1, "New apparent ISIS post threatens Japanese hostage, Jordanian pilot", "that", text)
 #test.named_entity_extraction()
 #print "--end--"

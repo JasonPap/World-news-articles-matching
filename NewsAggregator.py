@@ -82,15 +82,15 @@ class NewsAggregator:
         if var_type == "noun_phrases":
             weight = 1
         elif var_type == "hashtags":
-            weight = 1
+            weight = 3
         elif var_type == "title":
             weight = 1
         elif var_type == "persons":
-            weight = 1
+            weight = 2
         elif var_type == "organizations":
             weight = 1
         elif var_type == "locations":
-            weight = 1
+            weight = 5
         elif var_type == "countries":
             weight = 1
         elif var_type == "places":
@@ -98,7 +98,7 @@ class NewsAggregator:
         elif var_type == "summary":
             weight = 1
 
-        sum_of_weights = 9
+        sum_of_weights = 16
 
         return (score * weight) / sum_of_weights
 
