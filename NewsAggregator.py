@@ -95,10 +95,12 @@ class NewsAggregator:
             weight = 1
         elif var_type == "places":
             weight = 1
-        elif var_type == "summary":
+        elif var_type == "plaintext":
+            weight = 1
+        elif var_type == "description":
             weight = 1
 
-        sum_of_weights = 16
+        sum_of_weights = 17
 
         return (score * weight) / sum_of_weights
 

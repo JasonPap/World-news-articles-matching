@@ -8,13 +8,15 @@ from nltk.corpus import stopwords
 
 
 class NewsArticle:
-    def __init__(self, id, title, date, text, url, countries):
+    def __init__(self, id, title, date, text, url, description, countries):
         self.id = id
         self.title = title
         self.date = date
-        self.text = text
-        self.url = url
         self.metadata = dict()
+        self.metadata["plaintext"] = text
+        self.metadata["description"] = description
+        self.metadata["title"] = title
+        self.url = url
         self.countries = countries
 
     def extract_metadata(self):
@@ -34,7 +36,6 @@ class NewsArticle:
 
         # tag the relevant words on the title and save the result
         tagged_title = ht.hashtagify(0.40)
-        self.metadata["title"] = self.title
 
         # get only the tagged words and save them separately
         l_words = tagged_title.split(' ')
@@ -45,12 +46,12 @@ class NewsArticle:
         self.metadata["hashtags"] = l_tags
 
     def named_entity_extraction(self):
-        ner = NERTagger('/home/aris/Desktop/jason/stanford-ner/classifiers/english.all.3class.distsim.crf.ser.gz',
-                       '/home/aris/Desktop/jason/stanford-ner/stanford-ner.jar')
+        ner = NERTagger('/usr/share/stanford-ner/classifiers/english.all.3class.distsim.crf.ser.gz',
+                       '/usr/share/stanford-ner/stanford-ner.jar')
         extracted_ne2 = ner.tag(self.text.replace(".", " ").replace(",", " , ").replace("!", " ").replace("?", " ").replace("\n"," ").split())
         extracted_ne = extracted_ne2[0]
         
-        #print extracted_ne
+        # print extracted_ne
         
         persons = self.process_named_entities(extracted_ne, "PERSON")
         organizations = self.process_named_entities(extracted_ne, "ORGANIZATION")
@@ -63,8 +64,9 @@ class NewsArticle:
         general_locations = self.enrich_location(locations)
         self.metadata["countries"] = general_locations[0]   # a list of countries
         self.metadata["places"] = general_locations[1]      # a list of places
-        
-       # print locations
+
+        # self.metadata["plaintext"] = self.text
+        # print locations
 
         #useful_ne = self.remove_unwanted_words(extracted_ne)
         #self.metadata["summary"] = useful_ne

@@ -32,7 +32,11 @@ class Classifier:
             np_str1 = ' '.join(self.content)
             np_str2 = ' '.join(content)  # convert a list of strings to a single string
             score = Utils.text_similarity(np_str1, np_str2)
-        elif content_type == "summary":
+        elif content_type == "plaintext":
+            score = Utils.text_similarity(self.content, content)
+        elif content_type == "title":
+            score = Utils.text_similarity(self.content, content)
+        elif content_type == "description":
             score = Utils.text_similarity(self.content, content)
 
         return score
